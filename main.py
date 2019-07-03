@@ -37,9 +37,8 @@ def process_to_svg_group(row,dis=False):
     pathssvg = []
     for path in paths:
         path.setAttribute('fill', 'url(#%s)'%(row['ISO_A2'].lower()))
-        if dis:
-            path.setAttribute('fill', '#ffffff')        
-        path.setAttribute('stroke','none')
+        path.setAttribute('stroke-width','0.1')
+        path.setAttribute('stroke','#000000')
         path.setAttribute('opacity','1')
         path.setAttribute('transform','scale(10,-10)')
         pathssvg.append(path.toxml())
@@ -49,12 +48,14 @@ def process_to_svg_group(row,dis=False):
 processed_rows = []
 def_rows = []
 
-for index,row in gismap.iterrows():
+
+res_symdiff = gpd.overlay(gismap, dismap, how='difference')
+
+for index,row in res_symdiff.iterrows():
     country_data=[]
     dominant_pixels = []
     stops = []    
-
-    country_code = gismap.loc[index,'ISO_A2'].lower()
+    country_code = row['ISO_A2'].lower()
     try:
         flag_image = Image.open(FLAGS_DIR+country_code+".png")
     except FileNotFoundError:
@@ -72,23 +73,20 @@ for index,row in gismap.iterrows():
     for pixel in dominant_pixels:
         percentage = pixel[0]*100/(flag_image.width * flag_image.height)
         color = "#%02x%02x%02x" % pixel[1]
+        perc = reduce(lambda x,y: math.floor(x+y), {x['percentage'] for x in country_data}) if len(country_data) > 0 else 0
+        stops.append('<stop offset="%s%%" stop-color="%s" stop-opacity="1"/><stop offset="%s%%" stop-color="%s" stop-opacity="1"/>'%(perc,color,perc+percentage,color))
         country_data.append({"color":color,"percentage":percentage})
-        stops.append('<stop offset="%s%%" stop-color="%s" />'%(reduce(lambda x,y: math.floor(x+y), {x['percentage'] for x in country_data}),color))
-    
-    p = process_to_svg_group(row)
     grad = '''<defs>
-            <linearGradient id="%s" gradientTransform="rotate(90)">
+            <linearGradient x1="0" x2="0" y1="1" y2="0" id="%s">
                 %s           
             </linearGradient>
             </defs>
             '''%(country_code,''.join(stops))
-    processed_rows.append(p)
     def_rows.append(grad)
 
-
-for index,row in dismap.iterrows():
-    p = process_to_svg_group(row,True)
+    p = process_to_svg_group(row)
     processed_rows.append(p)
+
 
 props = {
     'version': '1.1',
