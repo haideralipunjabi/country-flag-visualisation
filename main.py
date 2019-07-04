@@ -35,8 +35,13 @@ def process_to_svg_group(row,dis=False):
     doc = minidom.parseString(orig_svg)
     paths = doc.getElementsByTagName('path')
     pathssvg = []
+    country_code = row['ISO_A2'].lower()
+    if row['NAME'] == 'France':
+        country_code = 'fr'
+    if row['NAME'] == 'Norway':
+        country_code = 'no'
     for path in paths:
-        path.setAttribute('fill', 'url(#%s)'%(row['ISO_A2'].lower()))
+        path.setAttribute('fill', 'url(#%s)'%(country_code))
         path.setAttribute('stroke-width','0.1')
         path.setAttribute('stroke','#000000')
         path.setAttribute('opacity','1')
@@ -48,7 +53,6 @@ def process_to_svg_group(row,dis=False):
 processed_rows = []
 def_rows = []
 
-
 res_symdiff = gpd.overlay(gismap, dismap, how='difference')
 
 for index,row in res_symdiff.iterrows():
@@ -56,6 +60,10 @@ for index,row in res_symdiff.iterrows():
     dominant_pixels = []
     stops = []    
     country_code = row['ISO_A2'].lower()
+    if row['NAME'] == 'France':
+        country_code = 'fr'
+    if row['NAME'] == 'Norway':
+        country_code = 'no' 
     try:
         flag_image = Image.open(FLAGS_DIR+country_code+".png")
     except FileNotFoundError:
@@ -69,11 +77,20 @@ for index,row in res_symdiff.iterrows():
     for pixel in sorted_pixels:
         if pixel[0]*100/(flag_image.width * flag_image.height) > 1:
             dominant_pixels.append(pixel)
-    sum = reduce(lambda x,y: x+y, {x[0] for x in dominant_pixels})
+    print(dominant_pixels)
+    sum = 0
+    for x in dominant_pixels:
+        sum += x[0]
+    print(sum)
     for pixel in dominant_pixels:
         percentage = pixel[0]*100/sum
+        print(percentage)
         color = "#%02x%02x%02x" % pixel[1]
-        perc = reduce(lambda x,y: x+y, {x['percentage'] for x in country_data}) if len(country_data) > 0 else 0
+        perc = 0
+        if len(country_data) > 0:
+            for x in country_data:
+                perc += x['percentage']
+
         stops.append('<stop offset="%s%%" stop-color="%s" stop-opacity="1"/><stop offset="%s%%" stop-color="%s" stop-opacity="1"/>'%(perc,color,perc+percentage,color))
         country_data.append({"color":color,"percentage":percentage})
     grad = '''<defs>
