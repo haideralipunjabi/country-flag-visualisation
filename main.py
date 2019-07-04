@@ -65,15 +65,15 @@ for index,row in res_symdiff.iterrows():
     # SOURCE: https://stackoverflow.com/a/52879133/4698800
     pixels = flag_image.getcolors(flag_image.width * flag_image.height)
     sorted_pixels = sorted(pixels, key=lambda t: t[0])
-    
-    for pixel in pixels:
-        if pixel[0]*100/(flag_image.width * flag_image.height) > 5:
+
+    for pixel in sorted_pixels:
+        if pixel[0]*100/(flag_image.width * flag_image.height) > 1:
             dominant_pixels.append(pixel)
-    
+    sum = reduce(lambda x,y: x+y, {x[0] for x in dominant_pixels})
     for pixel in dominant_pixels:
-        percentage = pixel[0]*100/(flag_image.width * flag_image.height)
+        percentage = pixel[0]*100/sum
         color = "#%02x%02x%02x" % pixel[1]
-        perc = reduce(lambda x,y: math.floor(x+y), {x['percentage'] for x in country_data}) if len(country_data) > 0 else 0
+        perc = reduce(lambda x,y: x+y, {x['percentage'] for x in country_data}) if len(country_data) > 0 else 0
         stops.append('<stop offset="%s%%" stop-color="%s" stop-opacity="1"/><stop offset="%s%%" stop-color="%s" stop-opacity="1"/>'%(perc,color,perc+percentage,color))
         country_data.append({"color":color,"percentage":percentage})
     grad = '''<defs>
